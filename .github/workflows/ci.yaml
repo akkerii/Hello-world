@@ -51,7 +51,8 @@ jobs:
       - name: Extract version
         id: extract_version
         run: |
-          echo "VERSION=$(node -p \"require('./app/package.json').version\")" >> $GITHUB_ENV
+          VERSION=$(node -p "require('./app/package.json').version")
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v1
