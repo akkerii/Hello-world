@@ -2,18 +2,18 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   # optionally trigger on git tags for versioned releases:
   # tags: [ 'v*.*.*' ]
 
 env:
   # ——— Update these ———
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  SERVICE: my-node-app             # your Cloud Run service name
-  REGION: us-central1              # your Cloud Run region
-  REPOSITORY: my-repo              # your Artifact Registry repo
+  SERVICE: my-node-app # your Cloud Run service name
+  REGION: us-central1 # your Cloud Run region
+  REPOSITORY: my-repo # your Artifact Registry repo
   IMAGE_URI: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-repo/my-node-app
 
 permissions:
@@ -29,7 +29,8 @@ jobs:
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
-        with: node-version: '18'
+        with:
+          node-version: "18"
 
       - name: Install dependencies
         run: cd app && npm ci
