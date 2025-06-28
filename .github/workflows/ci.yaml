@@ -5,8 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-  # optionally trigger on git tags for versioned releases:
-  # tags: [ 'v*.*.*' ]
+
 
 env:
   # ——— Update these ———
