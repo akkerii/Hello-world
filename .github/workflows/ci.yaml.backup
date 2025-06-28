@@ -3,19 +3,20 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [main]
-    tags: ["v*.*.*"]
+    tags: ["v*.*.*"] # Trigger on version tags
   pull_request:
     branches: [main]
 
 env:
+  # ——— Update these ———
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  SERVICE: my-node-app
-  REGION: us-central1
-  REPOSITORY: my-repo
+  SERVICE: my-node-app # your Cloud Run service name
+  REGION: us-central1 # your Cloud Run region
+  REPOSITORY: my-repo # your Artifact Registry repo
   IMAGE_URI: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-repo/my-node-app
 
 permissions:
-  contents: write
+  contents: write # Allow writing to repository (for version bumps)
   id-token: write
   pull-requests: read
 
@@ -144,6 +145,7 @@ jobs:
           echo "Available images in repository:"
           gcloud artifacts docker images list us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/my-repo/my-node-app || echo "No images found"
 
+          # Use latest tag if version is empty
           if [ -z "${{ env.VERSION }}" ]; then
             IMAGE_TAG="latest"
             echo "Using latest tag due to empty version"
