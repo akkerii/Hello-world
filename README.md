@@ -148,35 +148,46 @@ _Note: Costs depend on request volume, CPU/memory usage, and storage needs._
 
 ### Pipeline Stages
 
-1. **Version Check**: Detects current version from package.json
+1. **Auto Version Increment**: Automatically bumps version and creates tags
 2. **Lint & Test**: Code quality checks and unit tests
 3. **Build & Scan**: Docker build, vulnerability scan, push to registry
 4. **Deploy**: Cloud Run deployment with health checks
 
 ### Deployment Process
 
-#### Manual Version Management
+#### Automatic Version Management
 
-Update versions manually before deployment for full control:
+The pipeline automatically increments versions on every push:
 
 ```bash
-# Patch version bump (1.0.1 → 1.0.2) - bug fixes
-cd app && npm version patch
+# Default: Patch version bump (1.0.1 → 1.0.2)
+git commit -m "Fix bug in API response"
 git push origin main
+# Result: Creates v1.0.2 tag, v1.0.1 persists
 
-# Minor version bump (1.0.1 → 1.1.0) - new features
-cd app && npm version minor
+# Minor version bump (1.0.2 → 1.1.0)
+git commit -m "Add new endpoint [minor]"
 git push origin main
+# Result: Creates v1.1.0 tag, previous versions persist
 
-# Major version bump (1.0.1 → 2.0.0) - breaking changes
-cd app && npm version major
+# Major version bump (1.1.0 → 2.0.0)
+git commit -m "Breaking API changes [major]"
 git push origin main
+# Result: Creates v2.0.0 tag, all previous versions persist
 
-# Or update package.json manually and commit
-git add app/package.json
-git commit -m "Bump version to 1.1.0"
+# Skip version bump (no change)
+git commit -m "Update documentation [skip-version]"
 git push origin main
+# Result: No version change, uses current version
 ```
+
+#### Version Progression Example
+
+Each push creates a new version while preserving old ones:
+
+- Push 1: `v1.0.1`, `latest`
+- Push 2: `v1.0.1`, `v1.0.2`, `latest`
+- Push 3: `v1.0.1`, `v1.0.2`, `v1.0.3`, `latest`
 
 #### Manual Deployment (if needed)
 
