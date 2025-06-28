@@ -188,6 +188,3 @@ jobs:
           done
           echo "❌ Health check failed after 5 attempts" && exit 1
 
-      # — Manual rollback instructions (run locally) —
-      # gcloud run services update-traffic ${{ env.SERVICE }} \
-      #   --to-revisions=SERVICE_REVISION_OLD=100
