@@ -3,39 +3,76 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [main]
-    tags: ["v*.*.*"] # Trigger on version tags
+    tags: ["v*.*.*"]
   pull_request:
     branches: [main]
 
 env:
-  # ——— Update these ———
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  SERVICE: my-node-app # your Cloud Run service name
-  REGION: us-central1 # your Cloud Run region
-  REPOSITORY: my-repo # your Artifact Registry repo
+  SERVICE: my-node-app
+  REGION: us-central1
+  REPOSITORY: my-repo
   IMAGE_URI: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-repo/my-node-app
 
 permissions:
-  contents: write # Allow writing to repository (for version bumps)
+  contents: write
   id-token: write
   pull-requests: read
 
 jobs:
   version-check:
-    name: 🔢 Version Detection
+    name: 🔢 Auto Version Increment
     runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip-ci]')"
     outputs:
-      version: ${{ steps.get-version.outputs.version }}
-      should_deploy: ${{ steps.get-version.outputs.should_deploy }}
+      version: ${{ steps.bump-version.outputs.version }}
+      should_deploy: ${{ steps.bump-version.outputs.should_deploy }}
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get version from package.json
-        id: get-version
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: Configure Git
         run: |
-          VERSION=$(node -p "require('./app/package.json').version")
-          echo "Detected version: $VERSION"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Auto increment version
+        id: bump-version
+        run: |
+          cd app
+
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "Current version in package.json: $CURRENT_VERSION"
+
+          # Parse current version
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+
+          # Calculate new version based on commit message and run number
+          if [[ "${{ github.event.head_commit.message }}" == *"[skip-version]"* ]]; then
+            echo "Skipping version bump due to [skip-version] in commit message"
+            NEW_VERSION="$CURRENT_VERSION"
+          elif [[ "${{ github.event.head_commit.message }}" == *"[major]"* ]]; then
+            NEW_VERSION="$((MAJOR + 1)).0.0"
+            echo "Bumped to major version: $NEW_VERSION"
+          elif [[ "${{ github.event.head_commit.message }}" == *"[minor]"* ]]; then
+            NEW_VERSION="$MAJOR.$((MINOR + 1)).0"
+            echo "Bumped to minor version: $NEW_VERSION"
+          else
+            # Auto-increment patch version using GitHub run number for uniqueness
+            NEW_PATCH=$((PATCH + ${{ github.run_number }}))
+            NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+            echo "Auto-bumped to patch version: $NEW_VERSION"
+          fi
+
+          echo "Final version: $NEW_VERSION"
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "should_deploy=true" >> $GITHUB_OUTPUT
 
   lint-test:
@@ -65,12 +102,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set version from previous job
         run: |
           VERSION="${{ needs.version-check.outputs.version }}"
           echo "Using version: $VERSION"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Create git tag for new version
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          if ! git tag -l | grep -q "v${{ env.VERSION }}"; then
+            git tag "v${{ env.VERSION }}"
+            git push origin "v${{ env.VERSION }}" || echo "Failed to push tag, continuing..."
+            echo "Created and pushed tag v${{ env.VERSION }}"
+          else
+            echo "Tag v${{ env.VERSION }} already exists"
+          fi
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v1
@@ -145,7 +197,6 @@ jobs:
           echo "Available images in repository:"
           gcloud artifacts docker images list us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/my-repo/my-node-app || echo "No images found"
 
-          # Use latest tag if version is empty
           if [ -z "${{ env.VERSION }}" ]; then
             IMAGE_TAG="latest"
             echo "Using latest tag due to empty version"

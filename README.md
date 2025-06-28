@@ -185,9 +185,11 @@ git push origin main
 
 Each push creates a new version while preserving old ones:
 
-- Push 1: `v1.0.1`, `latest`
-- Push 2: `v1.0.1`, `v1.0.2`, `latest`
-- Push 3: `v1.0.1`, `v1.0.2`, `v1.0.3`, `latest`
+- Push 1 (run #1): `v1.0.1`, `latest` → `v1.0.2`, `latest`
+- Push 2 (run #2): `v1.0.2`, `v1.0.4`, `latest`
+- Push 3 (run #3): `v1.0.2`, `v1.0.4`, `v1.0.7`, `latest`
+
+_Note: Version increments use GitHub run number for uniqueness, ensuring each deployment gets a unique version tag._
 
 #### Manual Deployment (if needed)
 
