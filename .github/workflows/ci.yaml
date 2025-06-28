@@ -3,47 +3,9 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [main]
+    tags: ["v*.*.*"] # Trigger on version tags
   pull_request:
     branches: [main]
-
-# Add this section after line 6 for automated versioning (optional)
-# Uncomment the following lines to enable automatic versioning:
-# on:
-#   push:
-#     branches: [main]
-#     tags: ['v*.*.*']  # Trigger on version tags
-#   pull_request:
-#     branches: [main]
-
-# Alternative: Add automatic version bumping
-# Add this job before build-and-scan for auto-versioning:
-#
-# auto-version:
-#   name: 🔢 Auto Version Bump
-#   runs-on: ubuntu-latest
-#   if: "!contains(github.event.head_commit.message, '[skip-version]')"
-#   steps:
-#     - uses: actions/checkout@v3
-#       with:
-#         token: ${{ secrets.GITHUB_TOKEN }}
-#         fetch-depth: 0
-#
-#     - name: Bump version
-#       run: |
-#         cd app
-#         if [[ "${{ github.event.head_commit.message }}" == *"[major]"* ]]; then
-#           npm version major
-#         elif [[ "${{ github.event.head_commit.message }}" == *"[minor]"* ]]; then
-#           npm version minor
-#         else
-#           npm version patch
-#         fi
-#
-#     - name: Push version bump
-#       run: |
-#         git config --local user.email "action@github.com"
-#         git config --local user.name "GitHub Action"
-#         git push origin main --tags
 
 env:
   # ——— Update these ———
@@ -58,9 +20,42 @@ permissions:
   id-token: write
 
 jobs:
+  auto-version:
+    name: 🔢 Auto Version Bump
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip-version]')"
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: Bump version
+        run: |
+          cd app
+          if [[ "${{ github.event.head_commit.message }}" == *"[major]"* ]]; then
+            npm version major
+          elif [[ "${{ github.event.head_commit.message }}" == *"[minor]"* ]]; then
+            npm version minor  
+          else
+            npm version patch
+          fi
+
+      - name: Push version bump
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git push origin main --tags
+
   lint-test:
     name: 🧪 Lint & Unit Tests
     runs-on: ubuntu-latest
+    needs: auto-version
     steps:
       - uses: actions/checkout@v3
 
@@ -80,7 +75,7 @@ jobs:
 
   build-and-scan:
     name: 🐳 Build Docker & Vulnerability Scan
-    needs: lint-test
+    needs: [auto-version, lint-test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3

@@ -148,17 +148,38 @@ _Note: Costs depend on request volume, CPU/memory usage, and storage needs._
 
 ### Pipeline Stages
 
-1. **Lint & Test**: Code quality checks and unit tests
-2. **Build & Scan**: Docker build, vulnerability scan, push to registry
-3. **Deploy**: Cloud Run deployment with health checks
+1. **Auto Version**: Automatic semantic version bumping based on commit messages
+2. **Lint & Test**: Code quality checks and unit tests
+3. **Build & Scan**: Docker build, vulnerability scan, push to registry
+4. **Deploy**: Cloud Run deployment with health checks
 
 ### Deployment Process
 
+#### Automated Version Management
+
+The pipeline automatically increments versions based on commit messages:
+
 ```bash
-# Automatic deployment on main branch push
+# Patch version bump (1.0.1 → 1.0.2) - default behavior
+git commit -m "Fix bug in API response"
 git push origin main
 
-# Manual deployment (if needed)
+# Minor version bump (1.0.1 → 1.1.0) - new features
+git commit -m "Add new endpoint [minor]"
+git push origin main
+
+# Major version bump (1.0.1 → 2.0.0) - breaking changes
+git commit -m "Breaking API changes [major]"
+git push origin main
+
+# Skip version bump - no version change
+git commit -m "Update documentation [skip-version]"
+git push origin main
+```
+
+#### Manual Deployment (if needed)
+
+```bash
 gcloud run deploy my-node-app \
     --image=us-central1-docker.pkg.dev/your-project/my-repo/my-node-app:latest \
     --region=us-central1 \
