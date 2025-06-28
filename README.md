@@ -148,32 +148,33 @@ _Note: Costs depend on request volume, CPU/memory usage, and storage needs._
 
 ### Pipeline Stages
 
-1. **Auto Version**: Automatic semantic version bumping based on commit messages
+1. **Version Check**: Detects current version from package.json
 2. **Lint & Test**: Code quality checks and unit tests
 3. **Build & Scan**: Docker build, vulnerability scan, push to registry
 4. **Deploy**: Cloud Run deployment with health checks
 
 ### Deployment Process
 
-#### Automated Version Management
+#### Manual Version Management
 
-The pipeline automatically increments versions based on commit messages:
+Update versions manually before deployment for full control:
 
 ```bash
-# Patch version bump (1.0.1 → 1.0.2) - default behavior
-git commit -m "Fix bug in API response"
+# Patch version bump (1.0.1 → 1.0.2) - bug fixes
+cd app && npm version patch
 git push origin main
 
 # Minor version bump (1.0.1 → 1.1.0) - new features
-git commit -m "Add new endpoint [minor]"
+cd app && npm version minor
 git push origin main
 
 # Major version bump (1.0.1 → 2.0.0) - breaking changes
-git commit -m "Breaking API changes [major]"
+cd app && npm version major
 git push origin main
 
-# Skip version bump - no version change
-git commit -m "Update documentation [skip-version]"
+# Or update package.json manually and commit
+git add app/package.json
+git commit -m "Bump version to 1.1.0"
 git push origin main
 ```
 
